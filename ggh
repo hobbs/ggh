@@ -44,13 +44,7 @@ cmd_start () {
 }
 
 cmd_upload () {
-    #check for clean status
-    status=`git status -s`
-    if [ -n "$status" ] 
-    then
-	echo "ggh error: Can not upload for review. Git status is not clean, please commit or stash changes and try again."
-	exit 1
-    fi
+    ensure_status_clean
 
     local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
     remote_branch=`git config branch.$local_branch.merge | sed -e 's|^refs/heads/||'`
@@ -86,10 +80,33 @@ cmd_upload () {
 }
 
 cmd_prune () {
-    echo fjdskl
+    ensure_status_clean
+    git fetch origin
+
+    #lets not try to delete the branch you're on
+    exclude=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
+
+    for branch in $(git for-each-ref --format='%(refname)' refs/heads/); do
+	simple_branch=`echo $branch | sed -e 's|^refs/heads/||'`
+	remote=`git config branch.$simple_branch.merge | sed -e 's|^refs/heads/||'`
+	diff=`git log --oneline "$branch" ^origin/$remote`
+	if [ "$simple_branch" != "$exclude" -a -z "$diff" ]
+	then
+	    git branch -D $simple_branch
+	fi
+    done
+
 }
 
-
+ensure_status_clean () {
+    #check for clean status
+    status=`git status -s`
+    if [ -n "$status" ] 
+    then
+	echo "ggh error: Could not complete command. Git status is not clean, please commit or stash changes and try again."
+	exit 1
+    fi
+}
 
 case "$1" in
     setup)
