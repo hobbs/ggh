@@ -49,7 +49,11 @@ cmd_gerrit_clone () {
     git clone $1
     project=`echo $1 | sed -E "s/.*\///"`
     gerrit=`echo $1 | sed -E "s/ssh:\/\/([^:\/]*).*/\1/"`
-    scp $gerrit:hooks/commit-msg $project/.git/hooks
+    cd $project
+    scp $gerrit:hooks/commit-msg .git/hooks
+    local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
+    git config branch.autosetuprebase always
+    git config branch.$local_branch.rebase true
 }
 
 cmd_start () {
