@@ -72,6 +72,15 @@ cmd_upload () {
 	exit 1
     fi
 
+    # make sure you don't need to pull from origin
+    git fetch origin
+    behind=`git log --oneline "origin/$remote_branch" ^$local_branch`
+    if [ -n "$behind" ]
+    then
+	echo "Can not upload changes, your branch is behind origin/$remote_branch.  Please rebase changes before uploading to avoid merge conflicts: git rebase origin/$remote_branch"
+	exit 1
+    fi
+
     #show preview
     git log --graph --stat origin/$remote_branch..
     
