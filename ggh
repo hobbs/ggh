@@ -33,15 +33,56 @@ cmd_setup () {
 }
 
 cmd_gerrit_clone () {
-    echo "fdslj"
+    git clone $1
+    project=`echo $1 | sed -E "s/.*\///"`
+    gerrit=`echo $1 | sed -E "s/ssh:\/\/([^:\/]*).*/\1/"`
+    scp $gerrit:hooks/commit-msg $project/.git/hooks
 }
 
 cmd_start () {
- echo "start"
+    git checkout -b $1 origin/$2
 }
 
 cmd_upload () {
-    echo FJDSL
+    #check for clean status
+    status=`git status -s`
+    if [ -n "$status" ] 
+    then
+	echo "ggh error: Can not upload for review. Git status is not clean, please commit or stash changes and try again."
+	exit 1
+    fi
+
+    local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
+    remote_branch=`git config branch.$local_branch.merge | sed -e 's|^refs/heads/||'`
+
+    if [ -z "$remote_branch" ]
+    then
+	echo "ggh error: This branch is not tracking a remote branch, upload not possible."
+	exit 1
+    fi
+
+    #show preview
+    git log --graph --stat origin/$remote_branch..
+    
+    #make user confirm upload
+    echo
+    echo -n "Are you sure you would like to upload these changes for review? [y/N]"
+    read -n1 answer
+    echo 
+    
+    if [ -z "$answer" ]
+    then
+	answer="n"
+    fi
+
+    # push if they said yes
+    if [ $answer == "y" -o $answer == "Y" ]
+    then
+	git push origin HEAD:refs/for/$remote_branch
+    else
+	echo "Aborting upload."
+    fi
+
 }
 
 cmd_prune () {
