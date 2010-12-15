@@ -19,7 +19,7 @@ Git Aliases
 
 "git upload" ---> show summary of changes to be uploaded, approve, upload
 
-"git prune" ----> remove all branches not ahead of the remote'
+"git prune-branches" ----> remove all branches not ahead of the remote.'
 
 }
 
@@ -38,9 +38,9 @@ cmd_setup () {
     echo "Setting up 'git upload'"
     git config --global alias.upload '!sh ggh upload'
 
-    echo "Setting up 'git prune'"
-    git config --global alias.prune '!sh ggh prune'
-    
+    echo "Setting up 'git prune-branches'"
+    git config --global alias.prune-branches '!sh ggh prune-branches'
+   
     echo "Done."
 
 }
@@ -158,7 +158,7 @@ case "$1" in
 	cmd_upload
 	;;
 
-    prune)
+    prune-branches)
 	cmd_prune
 	;;
 
