@@ -30,22 +30,32 @@ cmd_setup () {
     type -P git &>/dev/null || { echo "git must be in your PATH var in order to be setup." >&2; exit 1; }
 
     echo "Setting up 'git gerrit-clone'"
-    git config --global alias.gerrit-clone '!sh ggh gerrit-clone'
+    git config --global alias.gerrit-clone '!bash ggh gerrit-clone'
 
     echo "Setting up 'git start'"
-    git config --global alias.start '!sh ggh start'
+    git config --global alias.start '!bash ggh start'
 
     echo "Setting up 'git upload'"
-    git config --global alias.upload '!sh ggh upload'
+    git config --global alias.upload '!bash ggh upload'
 
     echo "Setting up 'git prune-branches'"
-    git config --global alias.prune-branches '!sh ggh prune-branches'
+    git config --global alias.prune-branches '!bash ggh prune-branches'
    
     echo "Done."
 
 }
 
 cmd_gerrit_clone () {
+    cur_name=`git config user.name`
+    cur_email=`git config user.email`
+
+    echo
+    echo -n "Name [$cur_name]:"
+    read name
+    echo -n "Email [$cur_email]:"
+    read email
+    echo
+
     git clone $1
     project=`echo $1 | sed -E "s/.*\///"`
     gerrit=`echo $1 | sed -E "s/ssh:\/\/([^:\/]*).*/\1/"`
@@ -54,6 +64,20 @@ cmd_gerrit_clone () {
     local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
     git config branch.autosetuprebase always
     git config branch.$local_branch.rebase true
+
+    if [ -z "$name" ]
+    then
+        name=$cur_name
+    fi
+
+    if [ -z "$email" ]
+    then
+	email=$cur_email
+    fi    
+
+    git config user.name "$name"
+    git config user.email "$email"
+
 }
 
 cmd_start () {
