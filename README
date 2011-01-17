@@ -1,0 +1,13 @@
+ggh - git-gerrit helper - 0.1
+
+"ggh setup"  - Setup the git aliases listed below in your global git config.  Note, each git alias just calls through to ggh with the arguments passed in.  So ggh could be used directly without the git aliases.
+
+Git Aliases
+
+"git gerrit-clone <url>" ---> git clone <url>, then setup post-commit hook
+
+"git start <local branch> <remote branch>" ---> git checkout -b $1 origin/$2
+
+"git upload" ---> show summary of changes to be uploaded, approve, upload
+
+"git prune-branches" ----> remove all branches not ahead of the remote.
