@@ -57,7 +57,7 @@ cmd_gerrit_clone () {
     echo
 
     git clone $1
-    project=`echo $1 | sed -E "s/.*\///"`
+    project=`echo $1 | sed -E "s/.*\///" | sed -E "s/\.git$//"`
     gerrit=`echo $1 | sed -E "s/ssh:\/\/([^:\/]*).*/\1/"`
     cd $project
     scp $gerrit:hooks/commit-msg .git/hooks
