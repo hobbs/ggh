@@ -58,9 +58,17 @@ cmd_gerrit_clone () {
 
     git clone $1
     project=`echo $1 | sed -E "s/.*\///" | sed -E "s/\.git$//"`
+    port=`echo $1 | sed -E "s/.*:([0-9]*).*/\1/"`
     gerrit=`echo $1 | sed -E "s/ssh:\/\/([^:\/]*).*/\1/"`
     cd $project
-    scp $gerrit:hooks/commit-msg .git/hooks
+
+    if [ -z "$port" ]
+    then
+	scp $gerrit:hooks/commit-msg .git/hooks
+    else
+	scp -p -P $port $gerrit:hooks/commit-msg .git/hooks
+    fi
+
     local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
     git config branch.autosetuprebase always
     git config branch.$local_branch.rebase true
