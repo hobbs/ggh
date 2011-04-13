@@ -89,7 +89,20 @@ cmd_gerrit_clone () {
 }
 
 cmd_start () {
-    git checkout -b $1 origin/$2
+    remote_branch=$2
+    if [ -z "$remote_branch" ]
+    then
+        #if we are already on a remote branch - use it as a starting point
+        local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
+        remote_branch=`git config branch.$local_branch.merge | sed -e 's|^refs/heads/||'`
+
+        if [ "$local_branch" != "$remote_branch" ]
+        then
+            echo "Please specify remote branch. git start <local_branch> <remote_branch>"
+            exit 1
+        fi
+    fi
+    git checkout -b $1 origin/$remote_branch
 }
 
 cmd_upload () {
