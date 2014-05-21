@@ -40,7 +40,7 @@ cmd_setup () {
 
     echo "Setting up 'git prune-branches'"
     git config --global alias.prune-branches '!bash ggh prune-branches'
-   
+
     echo "Done."
 
 }
@@ -64,9 +64,9 @@ cmd_gerrit_clone () {
 
     if [ -z "$port" ]
     then
-	scp $gerrit:hooks/commit-msg .git/hooks
+        scp $gerrit:hooks/commit-msg .git/hooks
     else
-	scp -p -P $port $gerrit:hooks/commit-msg .git/hooks
+        scp -p -P $port $gerrit:hooks/commit-msg .git/hooks
     fi
 
     local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
@@ -80,8 +80,8 @@ cmd_gerrit_clone () {
 
     if [ -z "$email" ]
     then
-	email=$cur_email
-    fi    
+        email=$cur_email
+    fi
 
     git config user.name "$name"
     git config user.email "$email"
@@ -89,7 +89,20 @@ cmd_gerrit_clone () {
 }
 
 cmd_start () {
-    git checkout -b $1 origin/$2
+    remote_branch=$2
+    if [ -z "$remote_branch" ]
+    then
+        #if we are already on a remote branch - use it as a starting point
+        local_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
+        remote_branch=`git config branch.$local_branch.merge | sed -e 's|^refs/heads/||'`
+
+        if [ "$local_branch" != "$remote_branch" ]
+        then
+            echo "Please specify remote branch. git start <local_branch> <remote_branch>"
+            exit 1
+        fi
+    fi
+    git checkout -b $1 origin/$remote_branch
 }
 
 cmd_upload () {
@@ -100,8 +113,8 @@ cmd_upload () {
 
     if [ -z "$remote_branch" ]
     then
-	echo "ggh error: This branch is not tracking a remote branch, upload not possible."
-	exit 1
+        echo "ggh error: This branch is not tracking a remote branch, upload not possible."
+        exit 1
     fi
 
     # make sure you don't need to pull from origin
@@ -109,30 +122,30 @@ cmd_upload () {
     behind=`git log --oneline "origin/$remote_branch" ^$local_branch`
     if [ -n "$behind" ]
     then
-	echo "Can not upload changes, your branch is behind origin/$remote_branch.  Please rebase changes before uploading to avoid merge conflicts: git rebase origin/$remote_branch"
-	exit 1
+        echo "Can not upload changes, your branch is behind origin/$remote_branch.  Please rebase changes before uploading to avoid merge conflicts: git rebase origin/$remote_branch"
+        exit 1
     fi
 
     #show preview
     git log --graph --stat origin/$remote_branch..
-    
+
     #make user confirm upload
     echo
     echo -n "Are you sure you would like to upload these changes for review? [y/N]"
     read -n1 answer
-    echo 
-    
+    echo
+
     if [ -z "$answer" ]
     then
-	answer="n"
+        answer="n"
     fi
 
     # push if they said yes
     if [ "$answer" == "y" -o "$answer" == "Y" ]
     then
-	git push origin HEAD:refs/for/$remote_branch
+        git push origin HEAD:refs/for/$remote_branch
     else
-	echo "Aborting upload."
+        echo "Aborting upload."
     fi
 
 }
@@ -142,23 +155,28 @@ cmd_prune () {
     git fetch origin
 
     #lets not try to delete the branch you're on
-    exclude=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
+    current_branch=`git symbolic-ref HEAD | sed -e 's|^refs/heads/||'`
 
     for branch in $(git for-each-ref --format='%(refname)' refs/heads/); do
-	simple_branch=`echo $branch | sed -e 's|^refs/heads/||'`
-	remote=`git config branch.$simple_branch.merge | sed -e 's|^refs/heads/||'`
-	
-	#don't delete branches that aren't tracking remotes
-	if [ -z "$remote" ]
-	then
-	    continue
-	fi
+    simple_branch=`echo $branch | sed -e 's|^refs/heads/||'`
+    remote=`git config branch.$simple_branch.merge | sed -e 's|^refs/heads/||'`
 
-	diff=`git log --oneline "$branch" ^origin/$remote`
-	if [ "$simple_branch" != "$exclude" -a -z "$diff" ]
-	then
-	    git branch -D $simple_branch
-	fi
+    #don't delete branches that aren't tracking remotes
+    if [ -z "$remote" ]
+    then
+        continue
+    fi
+
+    diff=`git log --oneline "$branch" ^origin/$remote`
+    if [ -z "$diff" -a "$simple_branch" != "$remote" ]
+    then
+        #if the current branch have to be pruned - switch to its parent first
+        if [ "$simple_branch" == "$current_branch" ]
+        then
+            git checkout $remote
+        fi
+        git branch -D $simple_branch
+    fi
     done
 
 }
@@ -166,36 +184,36 @@ cmd_prune () {
 ensure_status_clean () {
     #check for clean status
     status=`git status -s`
-    if [ -n "$status" ] 
+    if [ -n "$status" ]
     then
-	echo "ggh error: Could not complete command. Git status is not clean, please commit or stash changes and try again."
-	exit 1
+        echo "ggh error: Could not complete command. Git status is not clean, please commit or stash changes and try again."
+    exit 1
     fi
 }
 
 case "$1" in
     setup)
-	cmd_setup
-	;;
+        cmd_setup
+        ;;
 
     gerrit-clone)
-	cmd_gerrit_clone $2
-	;;
+        cmd_gerrit_clone $2
+        ;;
 
     start)
-	cmd_start $2 $3
-	;;
+        cmd_start $2 $3
+        ;;
 
     upload)
-	cmd_upload
-	;;
+        cmd_upload
+        ;;
 
     prune-branches)
-	cmd_prune
-	;;
+        cmd_prune
+        ;;
 
     *)
-	show_usage
-	;;
+        show_usage
+        ;;
 
 esac
